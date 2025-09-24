@@ -13,9 +13,12 @@
     "react-dom": "18.3.1",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.292.0",
-    "@/components/ui": "latest"
+    "tailwindcss": "^3.4.4",
+    "clsx": "^2.1.1"
   },
   "devDependencies": {
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "postcss": "^8.4.31",
+    "autoprefixer": "^10.4.16"
   }
 }
