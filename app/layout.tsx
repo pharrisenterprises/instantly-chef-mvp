@@ -1,5 +1,4 @@
 // app/layout.tsx
-
 import "./globals.css";
 import type { Metadata } from "next";
 
@@ -15,6 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body>{children}</body>
     </html>
   );
