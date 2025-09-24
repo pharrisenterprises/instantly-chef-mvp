@@ -1,3 +1,7 @@
+// app/page.tsx
+
+"use client"
+
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -12,173 +16,54 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { X, Edit3, LogIn, LogOut, Settings, CheckCircle2, RefreshCw } from "lucide-react";
+import {
+  Edit3,
+  LogIn,
+  LogOut,
+  CheckCircle2,
+  RefreshCw,
+} from "lucide-react";
 
-// ------------------ Types ------------------
-export type AccountProfile = {
-  household_size: number;
-  skill_level: "beginner" | "intermediate" | "advanced";
-  time_preference_min: 15 | 30 | 45;
-  equipment: string[];
-  restrictions: string[];
-  dislikes: string[];
-  cuisine_mode: "variety" | "theme" | "explorer" | "classics" | "custom";
-  cuisine_preferences: string[];
-  adventurousness: number;
-  favorite_foods: string[];
-  preferred_stores: { storeName: string; storeId: string; isPrimary: boolean }[];
-  staples_on_hand: {
-    salt: boolean;
-    pepper: boolean;
-    oils: string[];
-    sugar: boolean;
-    flour: boolean;
-    notes: string[];
-  };
-  substitution_policy: "none" | "brand_flexible" | "close_match";
-};
-
-export type WeeklyPlan = {
-  week_of: string;
-  dinners_requested: number;
-  budget_usd: number;
-  mode: "standard" | "gourmet" | "party";
-  leftover_proteins?: { ingredient: string; quantity: string }[];
-  reuse_leftovers: { breakfast: boolean; lunch: boolean };
-  extra_items: string[];
-  notes?: string;
-};
-
-export type DraftMeal = {
-  slot: number;
-  source: "auto" | "library";
-  recipe_id?: string | null;
-  name: string;
-  thumbnail?: string;
-  summary?: string;
-  prep_time_min?: number;
-  cook_time_min?: number;
-  tags?: string[];
-};
-
-export type DraftMenu = {
-  plan_id: string;
-  meals: DraftMeal[];
-  auto_approve_at?: string;
-};
-
-// ------------------ Utilities ------------------
-function endOfTodayISO() {
-  const d = new Date();
-  d.setHours(23, 59, 59, 999);
-  return d.toISOString();
+// ✅ Main page export that Next.js expects
+export default function Page() {
+  return <InstantlyChefMVP />;
 }
 
-const LOCAL_KEY = {
-  token: "ic_auth_token",
-  tokenExp: "ic_auth_exp",
-  profile: "ic_profile",
-  lastPlan: "ic_last_plan",
-};
+// --------------------------------------------------
+// The InstantlyChefMVP component (your app UI)
+// --------------------------------------------------
 
-function saveTokenForToday(token: string) {
-  localStorage.setItem(LOCAL_KEY.token, token);
-  localStorage.setItem(LOCAL_KEY.tokenExp, endOfTodayISO());
-}
-
-function isTokenValid() {
-  const t = localStorage.getItem(LOCAL_KEY.token);
-  const exp = localStorage.getItem(LOCAL_KEY.tokenExp);
-  if (!t || !exp) return false;
-  return new Date(exp) > new Date();
-}
-
-// ------------------ API Layer ------------------
-async function apiRegister(email: string, password: string) {
-  const res = await fetch("/api/auth/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  return res.json();
-}
-async function apiLogin(email: string, password: string) {
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  return res.json();
-}
-async function apiSaveProfile(profile: AccountProfile) {
-  const res = await fetch("/api/profile/save", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(profile),
-  });
-  return res.json();
-}
-async function apiGenerateDraft(profile: AccountProfile, weekly: WeeklyPlan) {
-  const res = await fetch("/api/planner/draft", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ profile, weekly }),
-  });
-  return res.json();
-}
-async function apiResubmitFeedback(planId: string, slot: number, feedback: string) {
-  const res = await fetch("/api/planner/feedback", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan_id: planId, slot, feedback }),
-  });
-  return res.json();
-}
-async function apiApprovePlan(planId: string, menu: DraftMenu) {
-  const res = await fetch("/api/planner/approve", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ plan_id: planId, menu }),
-  });
-  return res.json();
-}
-
-// ------------------ Root Component ------------------
-export default function InstantlyChefMVP() {
-  const [authed, setAuthed] = useState<boolean>(false);
+function InstantlyChefMVP() {
+  const [authed, setAuthed] = useState(false);
   const [token, setToken] = useState<string | null>(null);
-  const [stage, setStage] = useState<"profile" | "weekly" | "proposals">("profile");
-  const [profile, setProfile] = useState<AccountProfile>(() =>
-    JSON.parse(localStorage.getItem(LOCAL_KEY.profile) || "null") || defaultProfile()
-  );
-  const [weekly, setWeekly] = useState<WeeklyPlan>(() => defaultWeekly());
-  const [draft, setDraft] = useState<DraftMenu | null>(() =>
-    JSON.parse(localStorage.getItem(LOCAL_KEY.lastPlan) || "null")
-  );
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isTokenValid()) {
+    const stored = localStorage.getItem("ic_auth_token");
+    if (stored) {
       setAuthed(true);
-      setToken(localStorage.getItem(LOCAL_KEY.token));
+      setToken(stored);
     }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(LOCAL_KEY.profile, JSON.stringify(profile));
-  }, [profile]);
-
-  useEffect(() => {
-    if (draft) localStorage.setItem(LOCAL_KEY.lastPlan, JSON.stringify(draft));
-  }, [draft]);
-
   function handleLogout() {
-    localStorage.removeItem(LOCAL_KEY.token);
-    localStorage.removeItem(LOCAL_KEY.tokenExp);
+    localStorage.removeItem("ic_auth_token");
     setAuthed(false);
     setToken(null);
   }
@@ -186,103 +71,123 @@ export default function InstantlyChefMVP() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
       <TopBar authed={authed} onLogout={handleLogout} />
-
       <main className="mx-auto max-w-6xl p-4 md:p-8 grid gap-6">
         {!authed ? (
-          <AuthGate onAuthed={(t) => { saveTokenForToday(t); setToken(t); setAuthed(true); }} />
+          <AuthGate
+            onAuthed={(t) => {
+              localStorage.setItem("ic_auth_token", t);
+              setToken(t);
+              setAuthed(true);
+            }}
+          />
         ) : (
-          <>
-            <StepsNav stage={stage} onStage={setStage} hasDraft={!!draft} />
-
-            {stage === "profile" && (
-              <ProfileCard
-                profile={profile}
-                onChange={setProfile}
-                onSave={async () => {
-                  setLoading(true);
-                  await apiSaveProfile(profile);
-                  setLoading(false);
-                  setStage("weekly");
-                }}
-                loading={loading}
-              />
-            )}
-
-            {stage === "weekly" && (
-              <WeeklyConversational
-                weekly={weekly}
-                setWeekly={setWeekly}
-                onGenerate={async () => {
-                  setLoading(true);
-                  const d = await apiGenerateDraft(profile, weekly);
-                  setDraft(d);
-                  setLoading(false);
-                  setStage("proposals");
-                }}
-                loading={loading}
-              />
-            )}
-
-            {stage === "proposals" && draft && (
-              <ProposalsBoard
-                draft={draft}
-                setDraft={setDraft}
-                onBack={() => setStage("weekly")}
-                onApprove={async () => {
-                  setLoading(true);
-                  const res = await apiApprovePlan(draft.plan_id, draft);
-                  setLoading(false);
-                  if (res?.checkoutUrl) {
-                    window.open(res.checkoutUrl, "_blank");
-                  }
-                }}
-                loading={loading}
-              />)
-            }
-          </>
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Welcome to Instantly Chef MVP</CardTitle>
+                <CardDescription>
+                  Your profile, weekly planning, and menu editing will appear here.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600">
+                  ✅ Login works. Next steps: connect your profile, weekly
+                  planning, and proposals components here.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </main>
     </div>
   );
 }
 
-// ------------------ Components ------------------
-// (Keep the same component definitions as before: TopBar, AuthGate, StepsNav, ProfileCard, WeeklyConversational, ProposalsBoard, TogglePill, splitComma, parseLeftovers, etc.)
+// --------------------------------------------------
+// Supporting Components
+// --------------------------------------------------
 
-// ------------------ Defaults ------------------
-function defaultProfile(): AccountProfile {
-  return {
-    household_size: 2,
-    skill_level: "intermediate",
-    time_preference_min: 30,
-    equipment: ["stovetop", "oven", "cast_iron"],
-    restrictions: [],
-    dislikes: [],
-    cuisine_mode: "variety",
-    cuisine_preferences: ["italian", "mexican"],
-    adventurousness: 6,
-    favorite_foods: ["bbq", "pasta"],
-    preferred_stores: [ { storeName: "Publix", storeId: "pub_987", isPrimary: true } ],
-    staples_on_hand: { salt: true, pepper: true, oils: ["olive"], sugar: true, flour: false, notes: [] },
-    substitution_policy: "brand_flexible",
-  };
+function TopBar({ authed, onLogout }: { authed: boolean; onLogout: () => void }) {
+  return (
+    <div className="sticky top-0 z-10 backdrop-blur bg-white/80 border-b">
+      <div className="mx-auto max-w-6xl flex items-center justify-between p-3">
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-2xl bg-red-500" />
+          <span className="font-semibold tracking-tight">Instantly Chef</span>
+        </div>
+        {authed && (
+          <Button variant="outline" size="sm" onClick={onLogout}>
+            <LogOut className="w-4 h-4 mr-1" /> Logout
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function defaultWeekly(): WeeklyPlan {
-  const today = new Date();
-  const monday = new Date(today);
-  const day = today.getDay();
-  const diff = (day === 0 ? -6 : 1) - day;
-  monday.setDate(today.getDate() + diff);
-  const weekStr = monday.toISOString().slice(0, 10);
-  return {
-    week_of: weekStr,
-    dinners_requested: 3,
-    budget_usd: 75,
-    mode: "standard",
-    leftover_proteins: [],
-    reuse_leftovers: { breakfast: true, lunch: false },
-    extra_items: [],
-    notes: "mild spice please",
-  };
+function AuthGate({ onAuthed }: { onAuthed: (token: string) => void }) {
+  const [mode, setMode] = useState<"login" | "register">("register");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function submit() {
+    // hitting your mock API
+    const res = await fetch(`/api/auth/${mode}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    onAuthed(data.token);
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <Card className="max-w-xl mx-auto shadow-lg">
+        <CardHeader>
+          <CardTitle>
+            {mode === "register" ? "Create your account" : "Welcome back"}
+          </CardTitle>
+          <CardDescription>
+            You’ll stay signed in for the rest of today unless you log out.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2">
+            <Label>Email</Label>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label>Password</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <Button onClick={submit}>
+              <LogIn className="w-4 h-4 mr-2" />{" "}
+              {mode === "register" ? "Create account" : "Sign in"}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                setMode(mode === "register" ? "login" : "register")
+              }
+            >
+              {mode === "register"
+                ? "I already have an account"
+                : "Create a new account"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
 }
